@@ -13,12 +13,6 @@ from models.review import Review
 from json import loads
 
 
-def helper(obj, **kwargs):
-    if (kwargs):
-        for key in kwargs:
-            obj.__dict__[key] = kwargs[key]
-
-
 class HBNBCommand(cmd.Cmd):
     """ Contains the functionality for the HBNB console"""
 
@@ -104,7 +98,7 @@ class HBNBCommand(cmd.Cmd):
         exit()
 
     def help_quit(self):
-        """ Prints the help documentation for quit  """
+        """ Prints the help documentation for quit cmd  """
         print("Exits the program with formatting\n")
 
     def do_EOF(self, arg):
@@ -122,25 +116,39 @@ class HBNBCommand(cmd.Cmd):
 
     def do_create(self, args):
         """ Create an object of any class"""
-        argList = args.split(" ", 1)
-        if not argList[0]:
+        if not args:
             print("** class name missing **")
             return
-        elif argList[0] not in HBNBCommand.classes:
+
+        args = args.split(" ")
+        if args[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
             return
-        new_instance = HBNBCommand.classes[argList[0]]()
-        if len(argList) > 1:
-            paramList = argList[1].split(" ")
-            param_dict = {}
-            for i in range(len(paramList)):
-                key, v = tuple(paramList[i].split("="))
-                value = v.strip("\"").replace("_", " ")
-                param_dict[key] = value
-            helper(new_instance, **param_dict)
-        storage.save()
+        new_instance = HBNBCommand.classes[args[0]]()
+
+        for pair in args[1:]:
+            attr = pair.split("=", maxsplit=1)
+            key = attr[0]
+            value = ""
+            if attr[1][0] == '\"':
+                value = attr[1][1:-1].replace("_", " ").replace('"', '\"')
+            else:
+                if '.' in attr[1]:
+                    try:
+                        value = float(attr[1])
+                    except (SyntaxError, NameError):
+                        pass
+                else:
+                    try:
+                        value = int(attr[1])
+                    except (SyntaxError, NameError):
+                        pass
+            if value != "":
+                setattr(new_instance, key, value)
+            else:
+                pass
+        new_instance.save()
         print(new_instance.id)
-        storage.save()
 
     def help_create(self):
         """ Help information for the create method """
@@ -222,11 +230,11 @@ class HBNBCommand(cmd.Cmd):
             if args not in HBNBCommand.classes:
                 print("** class doesn't exist **")
                 return
-            for k, v in storage._FileStorage__objects.items():
+            for k, v in storage.all().items():
                 if k.split('.')[0] == args:
                     print_list.append(str(v))
         else:
-            for k, v in storage._FileStorage__objects.items():
+            for k, v in storage.all().items():
                 print_list.append(str(v))
 
         print(print_list)
@@ -245,7 +253,7 @@ class HBNBCommand(cmd.Cmd):
         print(count)
 
     def help_count(self):
-        """ """
+        """Help Information for Usage count """
         print("Usage: count <class_name>")
 
     def do_update(self, args):
